@@ -1,0 +1,15 @@
+{
+  "confirm-sign-up": "Welcome to Avenli — confirm your email",
+  "invite-user": "Your invitation to Avenli",
+  "magic-link-or-otp": "Your Avenli sign-in link",
+  "change-email-address": "Confirm your email change — Avenli",
+  "reset-password": "Reset your Avenli password",
+  "reauthentication": "Your Avenli verification code",
+  "password-changed": "Your Avenli password was changed",
+  "email-address-changed": "Your Avenli email address was changed",
+  "phone-number-changed": "Your Avenli phone number was changed",
+  "sign-in-method-linked": "A sign-in method was added to your Avenli account",
+  "sign-in-method-removed": "A sign-in method was removed from your Avenli account",
+  "mfa-method-added": "Two-step verification was added to your Avenli account",
+  "mfa-method-removed": "Two-step verification was removed from your Avenli account"
+}

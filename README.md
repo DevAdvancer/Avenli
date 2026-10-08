@@ -1,0 +1,76 @@
+# Avenli
+
+A standard Next.js 16 App Router application with Supabase authentication, database, and scheduled reminders. Ready to import into Vercel.
+
+## Features
+
+Personal tasks, priorities, subtasks, recurring schedules, calendar, list and board views, measurable goals, focus sessions, progress overview, in-app reminders, optional email reminders/digests, and JSON export. Dark mode is the default; the light/dark switch remembers your choice on this browser.
+
+## Local development
+
+Requires Node.js 22.13 or newer.
+
+```sh
+npm ci
+npm run dev
+```
+
+Open http://127.0.0.1:5173. The local `.env` is already configured. For a fresh checkout, copy `.env.example` to `.env.local` and set the existing backend signing secret. Sign in or create an account through Supabase; no mock user or ChatGPT sign-in is used.
+
+## Deploy to Vercel
+
+1. Import the repository into Vercel. Select **Next.js**. Set the Root Directory to `momentum` if importing the parent folder, or leave it blank if this folder is the repository root.
+2. Use `npm run build` and the default Next.js output settings.
+3. Add the three environment variables from `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `AVENLI_BACKEND_SECRET`. Copy the signing secret privately from the existing local `.env`; it must match Supabase Vault. Never prefix this secret with `NEXT_PUBLIC_`.
+4. In Supabase **Authentication > URL Configuration**, use Site URL `https://avenli.silverspaceinc.tech` (already configured). Add the exact production `/auth/callback` and `/auth/callback?next=/auth/reset` URLs to Redirect URLs. For local development add the same paths under `http://127.0.0.1:5173`.
+5. Email/password authentication must be enabled. Keep email confirmation enabled and configure the Supabase Auth email sender for real users; built-in test sending has recipient/rate restrictions. Auth emails and task reminder emails are separate configurations.
+6. Reminder links default to `https://avenli.silverspaceinc.tech`. An optional Supabase Edge Function `AVENLI_APP_URL` can override this with another HTTPS origin. Local sign-up and password reset links use the current local origin.
+
+No Vercel cron is required: the existing Supabase cron runs the reminder worker every minute. This project has not been deployed to Vercel yet.
+
+## Backend and security
+
+Supabase project: `dpahxvrwkyihqukermji`.
+
+Next.js verifies the Supabase user on every workspace API request, then signs a server-to-server request to `avenli-api`. The Edge Function filters every operation by that trusted owner. Tables have RLS enabled with direct client access revoked. Secrets stay in Supabase Vault and server environment variables. Email recipients come from the authenticated, confirmed account.
+
+Applied database changes: `database/schema.sql`, `database/reminder-scheduling.sql`, then `database/fix-reminder-queue.sql`. Supabase scheduler checks returned HTTP 200 after the queue fix.
+
+## Email status
+
+Brevo SMTP authentication has passed over encrypted port 465. Supabase Auth uses the same custom sender: **Avenli <abhirupvizva@gmail.com>**, with 30 auth emails/hour and a 60-second minimum interval. Email confirmation stays enabled. At the owner's request, Brevo SMTP IP restrictions were disabled because hosted sending IPs varied.
+
+The Settings connection check sends no message. The test email button sends only to the signed-in user. SMTP authentication is verified; the sender address is verified in Brevo; actual inbox delivery still needs account registration or the Settings test. No test email was sent during development.
+
+## Verification
+
+```sh
+npm run typecheck
+npm run build
+node scripts/verify-backend.mjs
+node scripts/verify-smtp.mjs
+```
+
+Backend verification uses disposable owners and needs network access. Remove its disposable profiles using the generated ignored `work/verification-owners.json` after testing; task and goal records are cleaned automatically. SMTP verification is separate and checks connectivity without sending mail.
+
+The production build and TypeScript pass. Live backend checks cover persistence, ownership, export isolation, recurrence, input validation, and replay prevention. The new sign-in screens have been browser checked; inbox delivery of confirmation and recovery messages remains a final user acceptance check.
+
+References: [Next.js on Vercel](https://vercel.com/docs/frameworks/full-stack/nextjs), [Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client), [Auth redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
+
+## Release checklist
+
+- Vercel: Node.js 22, Next.js preset, three environment variables from `.env.example`; redeploy after changing public variables.
+- Add `avenli.silverspaceinc.tech` in Vercel Domains, then apply the DNS records Vercel provides. This code checkout does not publish DNS or a deployment.
+- Keep these four exact Supabase redirect URLs: production `/auth/callback` and `/auth/callback?next=/auth/reset`, plus both paths under `http://127.0.0.1:5173`.
+- Test sign-up and confirmation, sign-out and sign-in, recovery, task persistence after refresh, and the Settings test email on the deployed domain.
+- Reminder worker: deployed `avenli-api`, backed by Supabase cron, Vault credentials, and owner checks. No service-role key belongs in Vercel or the browser.
+- JSON exports retrieve all owned records with pagination, including older notifications; the workspace shows the latest 100 notifications. A 50,000-record safeguard returns an explicit error instead of a partial export.
+- `.env`, `.vercel`, `work`, and local tool state are ignored. Publish `.env.example` and `package-lock.json` with the source.
+
+For a first account, use **Create an account**. Resend confirmation only applies to an existing, unconfirmed account; its generic response deliberately avoids revealing whether an address is registered.
+
+## Dependency verification (2026-10-08)
+
+Next.js and eslint-config-next are pinned to 16.4.0. The production dependency audit reports zero vulnerabilities after updating the lockfile. The full audit still reports a development-only `braces` advisory through the Next.js ESLint plugin's glob dependencies; npm offers no compatible fix (its suggested downgrade would replace the framework's lint configuration). This tooling dependency is not included in the production runtime. Recheck upstream before a later release.
+
+Production build, TypeScript, lint, 12 live backend checks, SMTP authentication, and a 505-task pagination check passed. Disposable verification rows were removed.
