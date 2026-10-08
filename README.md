@@ -19,12 +19,12 @@ Open http://127.0.0.1:5173. The local `.env` is already configured. For a fresh 
 
 ## Deploy to Vercel
 
-1. Import the repository into Vercel. Select **Next.js**. Set the Root Directory to `momentum` if importing the parent folder, or leave it blank if this folder is the repository root.
+1. Import the repository into Vercel. Select **Next.js**. Leave Root Directory blank for the `DevAdvancer/Avenli` repository. If importing a parent folder instead, set Root Directory to `Avenli`.
 2. Use `npm run build` and the default Next.js output settings.
 3. Add the three environment variables from `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `AVENLI_BACKEND_SECRET`. Copy the signing secret privately from the existing local `.env`; it must match Supabase Vault. Never prefix this secret with `NEXT_PUBLIC_`.
-4. In Supabase **Authentication > URL Configuration**, use Site URL `https://avenli.silverspaceinc.tech` (already configured). Add the exact production `/auth/callback` and `/auth/callback?next=/auth/reset` URLs to Redirect URLs. For local development add the same paths under `http://127.0.0.1:5173`.
+4. In Supabase **Authentication > URL Configuration**, keep Site URL `https://avenli.silverspaceinc.tech` as the default. Both production origins are supported: `https://avenli.silverspaceinc.tech` and `https://avenli.abhirupkumar.in`. Allow the exact `/auth/callback` and `/auth/callback?next=/auth/reset` URLs under each origin. Keep the same local callbacks under `http://127.0.0.1:5173`. These six redirects are configured in the hosted project.
 5. Email/password authentication must be enabled. Keep email confirmation enabled and configure the Supabase Auth email sender for real users; built-in test sending has recipient/rate restrictions. Auth emails and task reminder emails are separate configurations.
-6. Reminder links default to `https://avenli.silverspaceinc.tech`. An optional Supabase Edge Function `AVENLI_APP_URL` can override this with another HTTPS origin. Local sign-up and password reset links use the current local origin.
+6. Reminder and security email links default to `https://avenli.silverspaceinc.tech`. An optional Supabase Edge Function `AVENLI_APP_URL` can override the reminder destination with another HTTPS origin. Sign-up and password reset links use the origin where the user requested them, including the secondary domain or the allowed local origin. Sessions are separate across the two production domains, so users sign in on each domain they use.
 
 No Vercel cron is required: the existing Supabase cron runs the reminder worker every minute. This project has not been deployed to Vercel yet.
 
@@ -60,8 +60,8 @@ References: [Next.js on Vercel](https://vercel.com/docs/frameworks/full-stack/ne
 ## Release checklist
 
 - Vercel: Node.js 22, Next.js preset, three environment variables from `.env.example`; redeploy after changing public variables.
-- Add `avenli.silverspaceinc.tech` in Vercel Domains, then apply the DNS records Vercel provides. This code checkout does not publish DNS or a deployment.
-- Keep these four exact Supabase redirect URLs: production `/auth/callback` and `/auth/callback?next=/auth/reset`, plus both paths under `http://127.0.0.1:5173`.
+- Add both `avenli.silverspaceinc.tech` and `avenli.abhirupkumar.in` to the same Vercel project's Production deployment in Vercel Domains, then apply the DNS records Vercel provides for each. Configure both to serve the app if users should stay on their chosen domain. This code checkout does not publish DNS or a deployment.
+- Keep these six exact Supabase redirect URLs: `/auth/callback` and `/auth/callback?next=/auth/reset` under both production origins and `http://127.0.0.1:5173`.
 - Test sign-up and confirmation, sign-out and sign-in, recovery, task persistence after refresh, and the Settings test email on the deployed domain.
 - Reminder worker: deployed `avenli-api`, backed by Supabase cron, Vault credentials, and owner checks. No service-role key belongs in Vercel or the browser.
 - JSON exports retrieve all owned records with pagination, including older notifications; the workspace shows the latest 100 notifications. A 50,000-record safeguard returns an explicit error instead of a partial export.
