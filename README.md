@@ -4,7 +4,7 @@ A standard Next.js 16 App Router application with Supabase authentication, datab
 
 ## Features
 
-Personal tasks, priorities, subtasks, recurring schedules, calendar, list and board views, measurable goals, focus sessions, progress overview, in-app reminders, optional email reminders/digests, and JSON export. Dark mode is the default; the light/dark switch remembers your choice on this browser.
+Personal tasks, priorities, subtasks, recurring schedules, calendar, list and board views, measurable goals, focus sessions, progress overview, AI todo planning, in-app reminders, optional email reminders/digests, and JSON export. Dark mode is the default; the light/dark switch remembers your choice on this browser.
 
 ## Local development
 
@@ -21,12 +21,14 @@ Open http://127.0.0.1:5173. The local `.env` is already configured. For a fresh 
 
 1. Import the repository into Vercel. Select **Next.js**. Leave Root Directory blank for the `DevAdvancer/Avenli` repository. If importing a parent folder instead, set Root Directory to `Avenli`.
 2. Use `npm run build` and the default Next.js output settings.
-3. Add the three environment variables from `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `AVENLI_BACKEND_SECRET`. Copy the signing secret privately from the existing local `.env`; it must match Supabase Vault. Never prefix this secret with `NEXT_PUBLIC_`.
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `AVENLI_BACKEND_SECRET` from `.env.example`. Copy the signing secret privately from the existing local `.env`; it must match Supabase Vault. For AI planning, also add `ANTHROPIC_API_KEY` and `ANTHROPIC_WORKSPACE_ID` as server-only Production environment variables in Vercel. Set the workspace ID to the ID of the Claude workspace that owns the key. Redeploy after adding them. Never prefix either secret with `NEXT_PUBLIC_`.
 4. In Supabase **Authentication > URL Configuration**, keep Site URL `https://avenli.silverspaceinc.tech` as the default. Both production origins are supported: `https://avenli.silverspaceinc.tech` and `https://avenli.abhirupkumar.in`. Allow the exact `/auth/callback` and `/auth/callback?next=/auth/reset` URLs under each origin. Keep the same local callbacks under `http://127.0.0.1:5173`. These six redirects are configured in the hosted project.
 5. Email/password authentication must be enabled. Keep email confirmation enabled and configure the Supabase Auth email sender for real users; built-in test sending has recipient/rate restrictions. Auth emails and task reminder emails are separate configurations.
 6. Reminder and security email links default to `https://avenli.silverspaceinc.tech`. An optional Supabase Edge Function `AVENLI_APP_URL` can override the reminder destination with another HTTPS origin. Sign-up and password reset links use the origin where the user requested them, including the secondary domain or the allowed local origin. Sessions are separate across the two production domains, so users sign in on each domain they use.
 
-No Vercel cron is required: the existing Supabase cron runs the reminder worker every minute. This project has not been deployed to Vercel yet.
+No Vercel cron is required: the existing Supabase cron runs the reminder worker every minute.
+
+AI planning is a full workspace section and uses Claude Haiku 4.5 from a server-side route. The chat turns a description into up to eight tasks, asks at most one question if a date or time is unclear, asks whether scheduled tasks need reminders, and then saves them through the existing workspace API without a manual add step. Unscheduled tasks are saved immediately without a reminder. A bare day such as "the 12th" means the current month; a bare time such as "at 9" means 09:00, while "in the evening" makes it 21:00. EST/EDT/Eastern means local `America/New_York` time, using the scheduled date's daylight-saving offset. It uses up to 12 recent task titles, areas, priorities, and reminder timing to adapt suggestions; no model training or new database table is needed. The 10-request daily per-user limit is a best-effort guard on each server instance, so set a Claude workspace spending limit to cap total API spend.
 
 ## Backend and security
 
@@ -59,7 +61,7 @@ References: [Next.js on Vercel](https://vercel.com/docs/frameworks/full-stack/ne
 
 ## Release checklist
 
-- Vercel: Node.js 22, Next.js preset, three environment variables from `.env.example`; redeploy after changing public variables.
+- Vercel: Node.js 22, Next.js preset, five environment variables from `.env.example`; redeploy after changing variables.
 - Add both `avenli.silverspaceinc.tech` and `avenli.abhirupkumar.in` to the same Vercel project's Production deployment in Vercel Domains, then apply the DNS records Vercel provides for each. Configure both to serve the app if users should stay on their chosen domain. This code checkout does not publish DNS or a deployment.
 - Keep these six exact Supabase redirect URLs: `/auth/callback` and `/auth/callback?next=/auth/reset` under both production origins and `http://127.0.0.1:5173`.
 - Test sign-up and confirmation, sign-out and sign-in, recovery, task persistence after refresh, and the Settings test email on the deployed domain.

@@ -14,7 +14,7 @@ async function forward(request:Request,action:string,payload:unknown={}){
 }
 export async function GET(request:Request){return forward(request,"load");}
 export async function POST(request:Request){
- const origin=request.headers.get("origin");if(!origin||origin!==new URL(request.url).origin)return Response.json({error:"Invalid request origin"},{status:403});
+ const origin=request.headers.get("origin"),host=request.headers.get("host");const expected=host?`${new URL(request.url).protocol}//${host}`:new URL(request.url).origin;if(!origin||origin!==expected)return Response.json({error:"Invalid request origin"},{status:403});
  if(Number(request.headers.get("content-length")??0)>48000)return Response.json({error:"Request too large"},{status:413});
  try{const raw=await request.text();if(raw.length>48000)return Response.json({error:"Request too large"},{status:413});const body=JSON.parse(raw);if(typeof body.action!=="string")return Response.json({error:"Invalid action"},{status:400});return forward(request,body.action,body.payload);}catch{return Response.json({error:"Invalid request"},{status:400});}
 }
